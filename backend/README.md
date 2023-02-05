@@ -37,7 +37,7 @@ APP_SECRET=xxxxxxxxxx
 
 # Database
 DB_HOST=xxxxxxxxxx
-DB_PORT=15432
+DB_PORT=5432
 DB_DATABASE=xxxxxxxxxx
 DB_USERNAME=xxxxxxxxxx
 DB_PASSWORD=xxxxxxxxxx
