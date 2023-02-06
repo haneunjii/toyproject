@@ -12,11 +12,25 @@ export type SocialGroupProperties = {
   thumbnailUrl: string;
   needApprove: boolean;
   endAt: Date;
+  socialAt: Date;
+  socialPlace: SocialGroupPlaceProperties;
   likes: UserProperties[];
   likeCount?: number;
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null;
+};
+
+export type SocialGroupPlaceProperties = {
+  id: string;
+  socialGroup: SocialGroupProperties;
+  buildingName: string | null;
+  latitude: string;
+  longitude: string;
+  placeAddress: string;
+  region1DepthName: string;
+  region2DepthName: string;
+  region3DepthName: string;
 };
 
 export type SocialGroupMembersProperties = {

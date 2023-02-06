@@ -4,8 +4,10 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -14,6 +16,7 @@ import {
   SocialGroupProperties,
   SocialGroupType,
 } from '@domain/social/social-group';
+import { SocialGroupPlace } from '@domain/social/social-group-place.entity';
 import { SocialGroupUser } from '@domain/social/social-group-user.entity';
 import { User } from '@domain/user/user.entity';
 
@@ -52,6 +55,15 @@ export class SocialGroup implements SocialGroupProperties {
 
   @OneToMany(() => User, (user) => user)
   likes: User[];
+
+  @OneToOne(() => SocialGroupPlace, (socialGroupPlace) => socialGroupPlace, {
+    cascade: ['insert', 'soft-remove'],
+  })
+  @JoinColumn()
+  socialPlace: SocialGroupPlace;
+
+  @Column({ type: 'timestamptz' })
+  socialAt: Date;
 
   @CreateDateColumn()
   createdAt: Date;
