@@ -77,7 +77,7 @@ export class AuthController {
           nickname: kakao.kakao_account.profile.nickname,
         },
         authType: {
-          oauthId: kakao.id.toString(),
+          username: kakao.id.toString(),
           snsType: UserSNS.KAKAO,
         },
         profile: {
