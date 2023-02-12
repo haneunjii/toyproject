@@ -17,6 +17,8 @@ import {
   SocialGroupType,
 } from '@domain/social/social-group';
 import { SocialGroupPlace } from '@domain/social/social-group-place.entity';
+import { SocialGroupRecruitmentConditions } from '@domain/social/social-group-recruitment-conditions.entity';
+import { SocialGroupReportLogs } from '@domain/social/social-group-report-logs.entity';
 import { SocialGroupUser } from '@domain/social/social-group-user.entity';
 import { User } from '@domain/user/user.entity';
 
@@ -37,11 +39,21 @@ export class SocialGroup implements SocialGroupProperties {
   @Column()
   recruitment: number;
 
+  @Column({ type: 'int', default: 0 })
+  memberCount: number;
+
   @OneToMany(() => SocialGroupUser, (socialGroupUser) => socialGroupUser)
   members: SocialGroupUser[];
 
   @Column({ type: 'enum', enum: SocialGroupType })
   type: SocialGroupType;
+
+  @OneToOne(
+    () => SocialGroupRecruitmentConditions,
+    (socialRecruitmentConditions) => socialRecruitmentConditions,
+  )
+  @JoinColumn()
+  recruitmentConditions: SocialGroupRecruitmentConditions;
 
   @Column()
   @IsUrl()
@@ -53,14 +65,24 @@ export class SocialGroup implements SocialGroupProperties {
   @Column({ type: 'date' })
   endAt: Date;
 
+  @Column({ type: 'int', default: 0 })
+  likeCount: number;
+
   @OneToMany(() => User, (user) => user)
   likes: User[];
 
   @OneToOne(() => SocialGroupPlace, (socialGroupPlace) => socialGroupPlace, {
     cascade: ['insert', 'soft-remove'],
+    nullable: true,
   })
   @JoinColumn()
-  socialPlace: SocialGroupPlace;
+  socialPlace?: SocialGroupPlace | null;
+
+  @OneToMany(() => User, (user) => user)
+  reportLogs: SocialGroupReportLogs[];
+
+  @Column({ type: 'boolean' })
+  isOffline: boolean;
 
   @Column({ type: 'timestamptz' })
   socialAt: Date;

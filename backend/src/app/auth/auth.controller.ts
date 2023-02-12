@@ -38,9 +38,14 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'API 호출에 필요한 회원의 기본 정보를 호출합니다.' })
   @ApiBearerAuth()
-  async getMyProfile(@Req() { user }: Request): Promise<UserProfileResponse> {
-    const profile = await this.userService.getProfile(user);
-    return new UserProfileResponse(profile);
+  async getMyProfile(
+    @Req() { userData }: Request,
+  ): Promise<UserProfileResponse> {
+    const user = await this.userService.getProfile(userData);
+    return new UserProfileResponse({
+      ...user,
+      profileImageUrl: user.profile.profileImageUrl,
+    });
   }
 
   @Post('login/kakao')

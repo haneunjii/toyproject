@@ -18,6 +18,11 @@ export class UserProfileResponse implements UserProfileCommand {
   })
   nickname: string;
 
+  @ApiProperty({
+    description: '사용자 프로필 이미지 URL',
+  })
+  profileImageUrl: string | null;
+
   constructor(data: UserProfileCommand) {
     Object.assign(this, data);
   }

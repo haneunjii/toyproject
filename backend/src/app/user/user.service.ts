@@ -12,7 +12,7 @@ import { KakaoApiFailedException } from '@domain/errors/auth.errors';
 import {
   DuplicatedUsernameException,
   UserNotFoundException,
-} from '@domain/errors/user.erorrs';
+} from '@domain/errors/user.errors';
 import { UserAddress } from '@domain/user/user-address.entity';
 import { UserProfile } from '@domain/user/user-profile.entity';
 import { UserSns } from '@domain/user/user-sns.entity';

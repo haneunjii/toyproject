@@ -20,7 +20,7 @@ import { UserAddressRequest } from '@app/user/dto/user-address.request';
 import { UserAddressResponse } from '@app/user/dto/user-address.response';
 import { UserService } from '@app/user/user.service';
 import { AUTH_ERRORS } from '@domain/errors/auth.errors';
-import { USER_ERRORS } from '@domain/errors/user.erorrs';
+import { USER_ERRORS } from '@domain/errors/user.errors';
 
 @Controller('user')
 export class UserController {
