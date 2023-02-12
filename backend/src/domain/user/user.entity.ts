@@ -4,7 +4,6 @@ import {
   DeleteDateColumn,
   Entity,
   JoinColumn,
-  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -13,6 +12,7 @@ import {
 
 import { PostComment } from '@domain/post/post-comment.entity';
 import { Post } from '@domain/post/post.entity';
+import { SocialGroupReportLogs } from '@domain/social/social-group-report-logs.entity';
 import { SocialGroupUser } from '@domain/social/social-group-user.entity';
 import { UserProperties } from '@domain/user/user';
 import { UserAddress } from '@domain/user/user-address.entity';
@@ -32,7 +32,7 @@ export class User implements UserProperties {
   @Column({ unique: true })
   nickname: string;
 
-  @ManyToOne(() => UserSns, (userSns) => userSns)
+  @OneToOne(() => UserSns, (userSns) => userSns)
   @JoinColumn()
   authType: UserSns;
 
@@ -66,6 +66,9 @@ export class User implements UserProperties {
   @OneToOne(() => UserAddress, (userAddress) => userAddress)
   @JoinColumn()
   addressInfo: UserAddress;
+
+  @OneToMany(() => SocialGroupReportLogs, (reportLogs) => reportLogs)
+  reportLogs: SocialGroupReportLogs[];
 
   @CreateDateColumn()
   createdAt: Date;

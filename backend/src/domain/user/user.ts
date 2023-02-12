@@ -5,7 +5,7 @@ export type UserProperties = {
   id: string;
   username: string;
   nickname: string;
-  authType: UserSNSProperties;
+  authType: UserSnsProperties;
   posts: PostProperties[];
   comments: PostCommentProperties[];
   profile: UserProfileProperties;
@@ -56,11 +56,17 @@ export enum UserSNS {
   ETC = 'ETC',
 }
 
-export type UserSNSProperties = {
+export type UserSnsProperties = {
   id: string;
-  users: UserProperties[];
-  oauthId: string;
+  user: UserProperties;
+  userOauthTypes: UserOauthTypeProperties[];
+};
+
+export type UserOauthTypeProperties = {
+  id: string;
+  username: string;
   snsType: UserSNS;
+  userSNS: UserSnsProperties;
 };
 
 export type UserAddressProperties = {

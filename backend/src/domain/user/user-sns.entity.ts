@@ -1,19 +1,17 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
-import { UserSNS, UserSNSProperties } from '@domain/user/user';
+import { UserOauthType } from '@domain/user/oauth-type.entity';
+import { UserSnsProperties } from '@domain/user/user';
 import { User } from '@domain/user/user.entity';
 
 @Entity('user_sns')
-export class UserSns implements UserSNSProperties {
+export class UserSns implements UserSnsProperties {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @OneToMany(() => User, (user) => user.id)
-  users: User[];
+  @OneToOne(() => User, (user) => user.id)
+  user: User;
 
-  @Column()
-  oauthId: string;
-
-  @Column({ type: 'enum', enum: UserSNS, unique: true })
-  snsType: UserSNS;
+  @OneToMany(() => UserOauthType, (userOauthType) => userOauthType)
+  userOauthTypes: UserOauthType[];
 }

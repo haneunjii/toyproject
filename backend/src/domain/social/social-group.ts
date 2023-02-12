@@ -20,6 +20,7 @@ export type SocialGroupProperties = {
   likes: UserProperties[];
   likeCount?: number;
   recruitmentConditions: SocialRecruitmentConditions;
+  reportLogs: SocialGroupReportLogsProperties[];
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null;
@@ -57,18 +58,24 @@ export type SocialRecruitmentConditions = {
 export type SocialGroupReportLogsProperties = {
   id: string;
   user: UserProperties;
+  socialGroup: SocialGroupProperties;
   reason: string;
-  reportUrls?: string[];
+  reportImages: SocialGroupReportImagesProperties[];
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
 };
 
-export type SocialGroupReport = {
+export type SocialGroupReportImagesProperties = {
+  id: string;
+  url: string;
+  socialGroupReportLog: SocialGroupReportLogsProperties;
+};
+
+export type SocialGroupReportProperties = {
   id: string;
   SocialGroupReport: SocialGroupReportEnum;
-  socialGroup: SocialGroupProperties;
-  user: UserProperties;
+  socialGroupReportLog: SocialGroupReportLogsProperties;
 };
 
 export enum SocialGroupReportEnum {
