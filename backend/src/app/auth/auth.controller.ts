@@ -58,13 +58,15 @@ export class AuthController {
     @Body() accountRequestInfo: KakaoAuthRequest,
   ): Promise<TokenResponse> {
     // 카카오 토큰 조회 후 계정 정보 가져오기
-    const { code, domain } = accountRequestInfo;
-    if (!code || !domain) {
+    const { accessToken: kakaoAccessToken } = accountRequestInfo;
+    if (!kakaoAccessToken) {
       throw new BadRequestException('카카오 정보가 없습니다.');
     }
 
-    const kakao = await this.authService.kakaoLogin({ code, domain });
-    console.log('kakao', kakao);
+    const kakao = await this.authService.kakaoLogin({
+      accessToken: kakaoAccessToken,
+    });
+
     if (!kakao.id) {
       throw new BadRequestException('카카오 정보가 없습니다.');
     }

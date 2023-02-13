@@ -9,7 +9,7 @@ import {
 import { UserOauthTypeProperties, UserSNS } from '@domain/user/user';
 import { UserSns } from '@domain/user/user-sns.entity';
 
-@Entity('oauth_types')
+@Entity('user_oauth_types')
 export class UserOauthType implements UserOauthTypeProperties {
   @PrimaryGeneratedColumn('uuid')
   id: string;

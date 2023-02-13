@@ -1,6 +1,5 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 import { ACCESS_TOKEN_EXPIRE, REFRESH_TOKEN_EXPIRE } from '../../constants';
@@ -24,51 +23,24 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
     private readonly httpService: HttpService,
-    private readonly configService: ConfigService,
   ) {}
 
   async kakaoLogin(data: UserRequestCommand): Promise<KakaoUserInfo> {
-    const { code, domain } = data;
-    if (!code) {
-      throw new UnauthorizedException('카카오 정보가 없습니다.');
-    }
-    if (!domain) {
-      throw new UnauthorizedException('도메인 정보가 없습니다.');
-    }
-    const body = {
-      grant_type: 'authorization_code',
-      client_id: this.configService.get<string>('KAKAO_API_KEY'),
-      redirect_uri: domain,
-      code,
-    };
-    console.log(1);
-
-    const { data: kakaoAuthData, status: kakaoAuthStatus } =
-      await this.httpService.axiosRef.request({
-        method: 'POST',
-        url: `https://kauth.kakao.com/oauth/token`,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
-        },
-        data: body,
-      });
-    console.log(kakaoAuthData, kakaoAuthStatus);
-
-    if (kakaoAuthStatus !== 200) {
+    const { accessToken: kakaoAccessToken } = data;
+    if (!kakaoAccessToken) {
       throw new UnauthorizedException();
     }
 
     // Token 을 가져왔을 경우 사용자 정보 조회
     const headerUserInfo = {
-      Authorization: 'Bearer ' + kakaoAuthData.access_token,
+      Authorization: 'Bearer ' + kakaoAccessToken,
     };
 
     const responseUserInfo = await this.httpService.axiosRef.request({
-      method: 'GET',
+      method: 'POST',
       url: `https://kapi.kakao.com/v2/user/me`,
       headers: headerUserInfo,
     });
-    console.log(responseUserInfo);
 
     if (responseUserInfo.status !== 200) {
       throw new UnauthorizedException();

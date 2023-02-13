@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { UserController } from '@app/user/user.controller';
 import { UserService } from '@app/user/user.service';
+import { UserOauthType } from '@domain/user/oauth-type.entity';
 import { UserAddress } from '@domain/user/user-address.entity';
 import { UserProfile } from '@domain/user/user-profile.entity';
 import { UserSns } from '@domain/user/user-sns.entity';
@@ -12,7 +13,13 @@ import { User } from '@domain/user/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, UserAddress, UserProfile, UserSns]),
+    TypeOrmModule.forFeature([
+      User,
+      UserAddress,
+      UserProfile,
+      UserSns,
+      UserOauthType,
+    ]),
     HttpModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

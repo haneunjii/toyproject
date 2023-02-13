@@ -1,6 +1,5 @@
 export type UserRequestCommand = {
-  code: string;
-  domain: string;
+  accessToken: string;
 };
 
 export type KakaoUserInfo = {

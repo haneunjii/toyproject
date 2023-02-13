@@ -1,4 +1,10 @@
-import { Entity, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 import { UserOauthType } from '@domain/user/oauth-type.entity';
 import { UserSnsProperties } from '@domain/user/user';
@@ -10,6 +16,7 @@ export class UserSns implements UserSnsProperties {
   id: string;
 
   @OneToOne(() => User, (user) => user.id)
+  @JoinColumn()
   user: User;
 
   @OneToMany(() => UserOauthType, (userOauthType) => userOauthType)
