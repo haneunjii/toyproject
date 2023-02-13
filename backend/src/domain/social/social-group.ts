@@ -11,12 +11,31 @@ export type SocialGroupProperties = {
   type: SocialGroupType;
   thumbnailUrl: string;
   needApprove: boolean;
+  isOffline: boolean;
   endAt: Date;
+  // hasEntryFee: boolean;
+  // entryFee?: number;
+  socialAt: Date;
+  socialPlace?: SocialGroupPlaceProperties;
   likes: UserProperties[];
   likeCount?: number;
+  recruitmentConditions: SocialRecruitmentConditions;
+  reportLogs: SocialGroupReportLogsProperties[];
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null;
+};
+
+export type SocialGroupPlaceProperties = {
+  id: string;
+  socialGroup: SocialGroupProperties;
+  buildingName: string | null;
+  latitude: string;
+  longitude: string;
+  placeAddress: string;
+  region1DepthName: string;
+  region2DepthName: string;
+  region3DepthName: string;
 };
 
 export type SocialGroupMembersProperties = {
@@ -27,10 +46,50 @@ export type SocialGroupMembersProperties = {
   userRole: SocialGroupMemberRole;
 };
 
+export type SocialRecruitmentConditions = {
+  id: string;
+  socialGroup: SocialGroupProperties;
+  minAge: number;
+  maxAge: number;
+  onlyMale: boolean;
+  onlyFemale: boolean;
+};
+
+export type SocialGroupReportLogsProperties = {
+  id: string;
+  user: UserProperties;
+  socialGroup: SocialGroupProperties;
+  reason: string;
+  reportImages: SocialGroupReportImagesProperties[];
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+};
+
+export type SocialGroupReportImagesProperties = {
+  id: string;
+  url: string;
+  socialGroupReportLog: SocialGroupReportLogsProperties;
+};
+
+export type SocialGroupReportProperties = {
+  id: string;
+  SocialGroupReport: SocialGroupReportEnum;
+  socialGroupReportLog: SocialGroupReportLogsProperties;
+};
+
+export enum SocialGroupReportEnum {
+  SPAM = '특정 제품, 서비스, 사무임 단순 홍보',
+  ADULT = '성적인 내용',
+  CALL = '전화번호, 이메일, SNS 등 개인정보 요구',
+  ETC = '기타',
+}
+
 export enum SocialGroupMemberStatus {
   WAITING = '대기',
   JOINED = '참여',
   EXITED = '탈퇴',
+  KICKED = '강퇴',
 }
 
 export enum SocialGroupMemberRole {

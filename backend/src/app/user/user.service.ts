@@ -12,7 +12,8 @@ import { KakaoApiFailedException } from '@domain/errors/auth.errors';
 import {
   DuplicatedUsernameException,
   UserNotFoundException,
-} from '@domain/errors/user.erorrs';
+} from '@domain/errors/user.errors';
+import { UserOauthType } from '@domain/user/oauth-type.entity';
 import { UserAddress } from '@domain/user/user-address.entity';
 import { UserProfile } from '@domain/user/user-profile.entity';
 import { UserSns } from '@domain/user/user-sns.entity';
@@ -29,6 +30,8 @@ export class UserService {
     private readonly userAddressRepository: Repository<UserAddress>,
     @InjectRepository(UserSns)
     private readonly userSnsRepository: Repository<UserSns>,
+    @InjectRepository(UserOauthType)
+    private readonly userOauthTypeRepository: Repository<UserOauthType>,
     private readonly httpService: HttpService,
   ) {}
 
@@ -48,6 +51,21 @@ export class UserService {
       ...data.authType,
       user,
     });
+
+    const userOauthType = await this.userOauthTypeRepository.save({
+      snsType: data.authType.snsType,
+      username: data.user.username,
+    });
+
+    await this.userOauthTypeRepository.update(
+      {
+        id: userOauthType.id,
+        snsType: userOauthType.snsType,
+      },
+      {
+        userSNS: userSns,
+      },
+    );
 
     const joinedUser = await this.userRepository.save({
       ...user,

@@ -38,9 +38,14 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'API 호출에 필요한 회원의 기본 정보를 호출합니다.' })
   @ApiBearerAuth()
-  async getMyProfile(@Req() { user }: Request): Promise<UserProfileResponse> {
-    const profile = await this.userService.getProfile(user);
-    return new UserProfileResponse(profile);
+  async getMyProfile(
+    @Req() { userData }: Request,
+  ): Promise<UserProfileResponse> {
+    const user = await this.userService.getProfile(userData);
+    return new UserProfileResponse({
+      ...user,
+      profileImageUrl: user.profile.profileImageUrl,
+    });
   }
 
   @Post('login/kakao')
@@ -53,13 +58,15 @@ export class AuthController {
     @Body() accountRequestInfo: KakaoAuthRequest,
   ): Promise<TokenResponse> {
     // 카카오 토큰 조회 후 계정 정보 가져오기
-    const { code, domain } = accountRequestInfo;
-    if (!code || !domain) {
+    const { accessToken: kakaoAccessToken } = accountRequestInfo;
+    if (!kakaoAccessToken) {
       throw new BadRequestException('카카오 정보가 없습니다.');
     }
 
-    const kakao = await this.authService.kakaoLogin({ code, domain });
-    console.log('kakao', kakao);
+    const kakao = await this.authService.kakaoLogin({
+      accessToken: kakaoAccessToken,
+    });
+
     if (!kakao.id) {
       throw new BadRequestException('카카오 정보가 없습니다.');
     }
@@ -72,7 +79,7 @@ export class AuthController {
           nickname: kakao.kakao_account.profile.nickname,
         },
         authType: {
-          oauthId: kakao.id.toString(),
+          username: kakao.id.toString(),
           snsType: UserSNS.KAKAO,
         },
         profile: {
