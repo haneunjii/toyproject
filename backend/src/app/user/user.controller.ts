@@ -13,6 +13,7 @@ import {
   ApiNotFoundResponse,
   ApiOperation,
   ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '@app/auth/guards/jwt.guard';
@@ -22,6 +23,7 @@ import { UserService } from '@app/user/user.service';
 import { AUTH_ERRORS } from '@domain/errors/auth.errors';
 import { USER_ERRORS } from '@domain/errors/user.errors';
 
+@ApiTags('[유저] 계정')
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
