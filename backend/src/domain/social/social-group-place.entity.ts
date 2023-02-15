@@ -8,7 +8,9 @@ export class SocialGroupPlace implements SocialGroupPlaceProperties {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @OneToOne(() => SocialGroup, (socialGroup) => socialGroup)
+  @OneToOne(() => SocialGroup, (socialGroup) => socialGroup.socialPlace, {
+    onDelete: 'CASCADE',
+  })
   socialGroup: SocialGroup;
 
   @Column()
