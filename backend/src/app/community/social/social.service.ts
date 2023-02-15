@@ -10,6 +10,7 @@ import {
   SocialUpdateRequestCommand,
 } from '@app/community/social/commands/social.commands';
 import { SocialPreviewResponse } from '@app/community/social/dto/social-preview.response';
+import { UserProfileCommand } from '@app/user/user.commands';
 import { UserService } from '@app/user/user.service';
 import {
   DontHaveToRequest,
@@ -91,13 +92,14 @@ export class SocialService {
 
   async createSocial(
     data: SocialCreateRequestCommand,
-    user: User,
+    user: UserProfileCommand,
   ): Promise<SocialGroup> {
     const admin = await this.userService.findById(user.id);
 
     if (!admin) {
       throw new UserNotFoundException();
     }
+
     if (data.isOffline) {
       if (!data.socialPlace) {
         throw new SocialPlaceNotFound();
@@ -108,7 +110,10 @@ export class SocialService {
     return await this.generateSocialGroup(data, admin);
   }
 
-  async requestInviteSocial(socialId: string, user: User): Promise<boolean> {
+  async requestInviteSocial(
+    socialId: string,
+    user: UserProfileCommand,
+  ): Promise<boolean> {
     const socialGroup = await this.findById(socialId);
     if (!socialGroup) {
       throw new SocialNotFoundException();
@@ -135,7 +140,10 @@ export class SocialService {
     return affected > 0;
   }
 
-  async joinSocial(socialId: string, user: User): Promise<boolean> {
+  async joinSocial(
+    socialId: string,
+    user: UserProfileCommand,
+  ): Promise<boolean> {
     const socialGroup = await this.findById(socialId);
     if (!socialGroup) {
       throw new SocialNotFoundException();
@@ -161,7 +169,7 @@ export class SocialService {
     return affected > 0;
   }
 
-  async leaveSocial(socialId: string, user: User) {
+  async leaveSocial(socialId: string, user: UserProfileCommand) {
     const socialGroup = await this.findById(socialId);
     if (!socialGroup) {
       throw new SocialUserNotFoundException();
@@ -203,7 +211,11 @@ export class SocialService {
     return true;
   }
 
-  async kickSocial(socialId: string, userId: string, userData: User) {
+  async kickSocial(
+    socialId: string,
+    userId: string,
+    userData: UserProfileCommand,
+  ) {
     const socialGroup = await this.findById(socialId);
     if (!socialGroup) {
       throw new SocialUserNotFoundException();
@@ -237,7 +249,7 @@ export class SocialService {
 
   async updateSocial(
     socialId: string,
-    userData: User,
+    userData: UserProfileCommand,
     data: SocialUpdateRequestCommand,
   ): Promise<SocialGroup> {
     const socialGroup = await this.findById(socialId);
@@ -260,7 +272,7 @@ export class SocialService {
     });
   }
 
-  async deleteSocial(socialId: string, user: User) {
+  async deleteSocial(socialId: string, user: UserProfileCommand) {
     const socialGroup = await this.findById(socialId);
     if (!socialGroup) {
       throw new SocialNotFoundException();
