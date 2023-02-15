@@ -36,7 +36,7 @@ import { User } from '@domain/user/user.entity';
 export class SocialService {
   constructor(
     @InjectRepository(SocialGroup)
-    private readonly socialRepository: Repository<SocialGroup>,
+    private readonly socialGroupRepository: Repository<SocialGroup>,
     @InjectRepository(SocialGroupUser)
     private readonly socialGroupUserRepository: Repository<SocialGroupUser>,
     @InjectRepository(SocialGroupPlace)
@@ -48,7 +48,7 @@ export class SocialService {
     data: SocialListQuery,
   ): Promise<Pagination<SocialPreviewResponse>> {
     const { items, meta } = await paginate(
-      this.socialRepository,
+      this.socialGroupRepository,
       {
         page: data.page,
         limit: data.limit,
@@ -196,7 +196,7 @@ export class SocialService {
       throw new SocialAdminCantLeave();
     }
 
-    await this.socialRepository.softDelete({ id: socialGroup.id });
+    await this.socialGroupRepository.softDelete({ id: socialGroup.id });
     if (socialGroup.socialPlace) {
       await this.socialGroupPlaceRepository.softDelete({ id: socialGroup.id });
     }
@@ -266,7 +266,7 @@ export class SocialService {
       throw new SocialUserIsNotAdmin();
     }
 
-    return await this.socialRepository.save({
+    return await this.socialGroupRepository.save({
       id: socialGroup.id,
       ...data,
     });
@@ -282,14 +282,14 @@ export class SocialService {
       throw new SocialUserIsNotAdmin();
     }
 
-    const { affected } = await this.socialRepository.softDelete({
+    const { affected } = await this.socialGroupRepository.softDelete({
       id: socialGroup.id,
     });
     return affected > 0;
   }
 
   async findById(id: string): Promise<SocialGroup> {
-    return await this.socialRepository.findOne({
+    return await this.socialGroupRepository.findOne({
       where: { id },
       relations: ['members'],
     });
@@ -300,7 +300,7 @@ export class SocialService {
     socialGroupAdmin: User,
     socialGroupPlaceCreateData?: SocialPlaceCreateRequestCommand,
   ): Promise<SocialGroup> {
-    return await this.socialRepository.save({
+    return await this.socialGroupRepository.save({
       ...socialGroupCreateData,
       socialPlace: socialGroupPlaceCreateData,
       admin: socialGroupAdmin,
