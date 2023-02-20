@@ -5,6 +5,7 @@ export type UserProperties = {
   id: string;
   username: string;
   nickname: string;
+  profileImageUrl: string;
   authType: UserSnsProperties;
   posts: PostProperties[];
   comments: PostCommentProperties[];
@@ -21,7 +22,6 @@ export type UserProperties = {
 
 export type UserProfileProperties = {
   id: string;
-  profileImageUrl: string;
   followerCount: number;
   followingCount: number;
   mannerTemperature: number;

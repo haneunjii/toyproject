@@ -44,7 +44,6 @@ export class AuthController {
     const user = await this.userService.getProfile(userData);
     return new UserProfileResponse({
       ...user,
-      profileImageUrl: user.profile.profileImageUrl,
     });
   }
 
@@ -77,13 +76,11 @@ export class AuthController {
         user: {
           username: kakao.id.toString(),
           nickname: kakao.kakao_account.profile.nickname,
+          profileImageUrl: kakao.kakao_account.profile.profile_image_url,
         },
         authType: {
           username: kakao.id.toString(),
           snsType: UserSNS.KAKAO,
-        },
-        profile: {
-          profileImageUrl: kakao.kakao_account.profile.profile_image_url,
         },
       });
 

@@ -43,7 +43,6 @@ export class UserService {
     });
 
     const userProfile = await this.userProfileRepository.save({
-      ...data.profile,
       user,
     });
 
@@ -67,13 +66,11 @@ export class UserService {
       },
     );
 
-    const joinedUser = await this.userRepository.save({
+    return await this.userRepository.save({
       ...user,
       profile: userProfile,
       authType: userSns,
     });
-
-    return joinedUser;
   }
 
   async isValidateUsername(username: string): Promise<void> {
