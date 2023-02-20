@@ -1,22 +1,28 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { paginate, Pagination } from 'nestjs-typeorm-paginate';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 
+import { SocialPlaceCreateRequestCommand } from '@app/community/social/commands/social-place.commands';
 import {
   SocialCreateRequestCommand,
   SocialListQuery,
   SocialUpdateRequestCommand,
 } from '@app/community/social/commands/social.commands';
 import { SocialPreviewResponse } from '@app/community/social/dto/social-preview.response';
+import { UserProfileCommand } from '@app/user/user.commands';
 import { UserService } from '@app/user/user.service';
 import {
   DontHaveToRequest,
-  HaveToRequest,
+  HaveToRequestJoin,
   SocialAdminCantLeave,
+  SocialAdminCantRequestInvite,
+  SocialCantKickAdmin,
+  SocialCantLeaveAtNotJoin,
   SocialNotFoundException,
   SocialPlaceNotFound,
   SocialRequestAlreadyExist,
+  SocialRequestNotFoundException,
   SocialUserIsNotAdmin,
   SocialUserNotFoundException,
 } from '@domain/errors/social.errors';
@@ -34,7 +40,7 @@ import { User } from '@domain/user/user.entity';
 export class SocialService {
   constructor(
     @InjectRepository(SocialGroup)
-    private readonly socialRepository: Repository<SocialGroup>,
+    private readonly socialGroupRepository: Repository<SocialGroup>,
     @InjectRepository(SocialGroupUser)
     private readonly socialGroupUserRepository: Repository<SocialGroupUser>,
     @InjectRepository(SocialGroupPlace)
@@ -46,14 +52,19 @@ export class SocialService {
     data: SocialListQuery,
   ): Promise<Pagination<SocialPreviewResponse>> {
     const { items, meta } = await paginate(
-      this.socialRepository,
+      this.socialGroupRepository,
       {
         page: data.page,
         limit: data.limit,
       },
       {
-        relations: ['socialGroupPlaces'],
-        // where: {},
+        where: {
+          type: data.category,
+        },
+        relations: ['socialPlace', 'admin'],
+        order: {
+          createdAt: 'DESC',
+        },
       },
     );
 
@@ -62,7 +73,7 @@ export class SocialService {
         (socialGroup) =>
           new SocialPreviewResponse({
             ...socialGroup,
-            region3DepthName: socialGroup.socialPlace.region3DepthName,
+            region3DepthName: socialGroup.socialPlace?.region3DepthName,
           }),
       ),
       meta,
@@ -70,133 +81,146 @@ export class SocialService {
   }
 
   async getSocialProfile(socialId: string): Promise<SocialGroup> {
-    return await this.findById(socialId);
+    const socialGroup = await this.findById(socialId);
+    if (!socialGroup) throw new SocialNotFoundException();
+
+    socialGroup.members = await this.findMembersById(socialId, {
+      userStatus: SocialGroupMemberStatus.JOINED,
+    });
+    return socialGroup;
   }
 
-  async getSocialInviteRequestList(id: string): Promise<User[]> {
+  async getSocialInviteRequestList(
+    id: string,
+    admin: UserProfileCommand,
+  ): Promise<SocialGroupUser[]> {
     const socialGroup = await this.findById(id);
-    if (!socialGroup) {
-      throw new SocialNotFoundException();
-    }
+    if (!socialGroup) throw new SocialNotFoundException();
 
-    const socialGroupUsers = await this.socialGroupUserRepository.find({
-      where: {
-        id: socialGroup.id,
-        userStatus: SocialGroupMemberStatus.WAITING,
-      },
+    const user = await this.userService.findById(admin.id);
+    if (!user) throw new UserNotFoundException();
+    if (socialGroup.admin.id !== user.id) throw new SocialUserIsNotAdmin();
+
+    return await this.findMembersById(socialGroup.id, {
+      userStatus: SocialGroupMemberStatus.WAITING,
     });
-    return socialGroupUsers.map((socialGroupUser) => socialGroupUser.user);
   }
 
   async createSocial(
     data: SocialCreateRequestCommand,
-    user: User,
+    user: UserProfileCommand,
   ): Promise<SocialGroup> {
     const admin = await this.userService.findById(user.id);
-    if (!admin) {
-      throw new UserNotFoundException();
-    }
+    if (!admin) throw new UserNotFoundException();
+
     if (data.isOffline) {
-      if (!data.socialPlace) {
-        throw new SocialPlaceNotFound();
-      }
+      if (!data.socialPlace) throw new SocialPlaceNotFound();
 
-      const social = await this.socialRepository.save({
-        ...data,
-      });
-
-      const adminMember = await this.socialGroupUserRepository.save({
-        socialGroup: social,
-        admin,
-        userStatus: SocialGroupMemberStatus.JOINED,
-        userRole: SocialGroupMemberRole.ADMIN,
-      });
-
-      return await this.socialRepository.save({
-        ...social,
-        adminMember,
-        members: [adminMember],
-      });
+      return await this.generateSocialGroup(data, admin, data.socialPlace);
     }
-
-    const social = await this.socialRepository.save({
-      admin,
-      socialPlace: null,
-      ...data,
-    });
-
-    const adminMember = await this.socialGroupUserRepository.save({
-      socialGroup: social,
-      admin,
-      userStatus: SocialGroupMemberStatus.JOINED,
-      userRole: SocialGroupMemberRole.ADMIN,
-    });
-
-    return await this.socialRepository.save({
-      ...social,
-      adminMember,
-      members: [adminMember],
-    });
+    return await this.generateSocialGroup(data, admin);
   }
 
-  async requestInviteSocial(socialId: string, user: User): Promise<boolean> {
-    const socialGroup = await this.findById(socialId);
-    if (!socialGroup) {
-      throw new SocialNotFoundException();
-    }
-    if (!socialGroup.needApprove) {
-      throw new DontHaveToRequest();
-    }
+  async requestInviteSocial(data: {
+    socialId: string;
+    user: UserProfileCommand;
+  }): Promise<boolean> {
+    const socialGroup = await this.findById(data.socialId);
+    if (!socialGroup) throw new SocialNotFoundException();
+    if (!socialGroup.needApprove) throw new DontHaveToRequest();
+
+    const user = await this.userService.findById(data.user.id);
+    if (!user) throw new UserNotFoundException();
+
+    const members = await this.findMembersById(socialGroup.id);
+    if (socialGroup.admin.id === user.id)
+      throw new SocialAdminCantRequestInvite();
+
+    if (members.find((member) => member.user.id === user.id))
+      throw new SocialRequestAlreadyExist();
+
+    const joinedUser = await this.socialGroupUserRepository.save({
+      socialGroup: { id: socialGroup.id },
+      user: { id: user.id },
+      userStatus: SocialGroupMemberStatus.WAITING,
+      userRole: SocialGroupMemberRole.MEMBER,
+    });
+
+    return !!joinedUser;
+  }
+
+  async joinSocial(data: {
+    socialId: string;
+    user: UserProfileCommand;
+  }): Promise<boolean> {
+    const socialGroup = await this.findById(data.socialId);
+    if (!socialGroup) throw new SocialNotFoundException();
+    if (socialGroup.needApprove) throw new HaveToRequestJoin();
+
+    const user = await this.userService.findById(data.user.id);
+    if (!user) throw new UserNotFoundException();
 
     const users = await this.socialGroupUserRepository.count({
-      where: { socialGroup: { id: socialGroup.id }, user: { id: user.id } },
+      where: {
+        socialGroup: { id: socialGroup.id },
+        user,
+      },
     });
-    if (users > 0) {
-      throw new SocialRequestAlreadyExist();
-    }
+    if (users > 0) throw new SocialRequestAlreadyExist();
 
-    const { affected } = await this.socialGroupUserRepository.update(
-      { socialGroup: { id: socialGroup.id }, user: { id: user.id } },
-      {
+    const joinedUser = await this.addMemberToSocialGroup(
+      socialGroup,
+      user,
+      SocialGroupMemberStatus.JOINED,
+    );
+
+    return !!joinedUser;
+  }
+
+  async acceptInviteSocial(data: {
+    socialId: string;
+    userId: string;
+    user: UserProfileCommand;
+  }) {
+    const socialGroup = await this.findById(data.socialId);
+    if (!socialGroup) throw new SocialNotFoundException();
+
+    const admin = await this.userService.findById(data.user.id);
+    if (!admin) throw new UserNotFoundException();
+
+    if (socialGroup.admin.id !== admin.id) throw new SocialUserIsNotAdmin();
+
+    const user = await this.userService.findById(data.userId);
+    if (!user) throw new UserNotFoundException();
+
+    const joinRequest = await this.socialGroupUserRepository.findOne({
+      where: {
+        socialGroup: { id: socialGroup.id },
+        user: { id: user.id },
         userStatus: SocialGroupMemberStatus.WAITING,
         userRole: SocialGroupMemberRole.MEMBER,
       },
-    );
-
-    return affected > 0;
-  }
-
-  async joinSocial(socialId: string, user: User): Promise<boolean> {
-    const socialGroup = await this.findById(socialId);
-    if (!socialGroup) {
-      throw new SocialNotFoundException();
-    }
-    if (socialGroup.needApprove) {
-      throw new HaveToRequest();
-    }
-
-    const users = await this.socialGroupUserRepository.count({
-      where: { socialGroup: { id: socialGroup.id }, user: { id: user.id } },
     });
-    if (users > 0) {
-      throw new SocialRequestAlreadyExist();
-    }
+    if (!joinRequest) throw new SocialRequestNotFoundException();
 
     const { affected } = await this.socialGroupUserRepository.update(
-      { socialGroup: { id: socialGroup.id }, user: { id: user.id } },
+      {
+        socialGroup,
+        user,
+      },
       {
         userStatus: SocialGroupMemberStatus.JOINED,
-        userRole: SocialGroupMemberRole.MEMBER,
       },
     );
+
     return affected > 0;
   }
 
-  async leaveSocial(socialId: string, user: User) {
+  async leaveSocial(socialId: string, user: UserProfileCommand) {
     const socialGroup = await this.findById(socialId);
-    if (!socialGroup) {
-      throw new SocialUserNotFoundException();
-    }
+    if (!socialGroup) throw new SocialNotFoundException();
+
+    socialGroup.members = await this.findMembersById(socialGroup.id);
 
     const users = await this.socialGroupUserRepository.count({
       where: {
@@ -206,20 +230,19 @@ export class SocialService {
           SocialGroupMemberStatus.JOINED || SocialGroupMemberStatus.WAITING,
       },
     });
-    if (users > 0) {
-      throw new SocialRequestAlreadyExist();
-    }
+    if (users < 1) throw new SocialCantLeaveAtNotJoin();
 
     if (
       socialGroup.admin.id === user.id &&
       socialGroup.members.filter(
-        (member) => member.userRole !== SocialGroupMemberRole.ADMIN,
+        (member) =>
+          member.userRole !== SocialGroupMemberRole.ADMIN &&
+          member.userStatus === SocialGroupMemberStatus.JOINED,
       ).length > 0
-    ) {
+    )
       throw new SocialAdminCantLeave();
-    }
 
-    await this.socialRepository.softDelete({ id: socialGroup.id });
+    await this.socialGroupRepository.softDelete({ id: socialGroup.id });
     if (socialGroup.socialPlace) {
       await this.socialGroupPlaceRepository.softDelete({ id: socialGroup.id });
     }
@@ -234,31 +257,33 @@ export class SocialService {
     return true;
   }
 
-  async kickSocial(socialId: string, userId: string, userData: User) {
+  async kickSocial(
+    socialId: string,
+    userId: string,
+    userData: UserProfileCommand,
+  ) {
     const socialGroup = await this.findById(socialId);
-    if (!socialGroup) {
-      throw new SocialUserNotFoundException();
-    }
+    if (!socialGroup) throw new SocialUserNotFoundException();
 
     const adminUser = await this.userService.findById(userData.id);
-    if (!adminUser) {
-      throw new UserNotFoundException();
-    }
-    if (socialGroup.admin.id !== adminUser.id) {
-      throw new SocialUserIsNotAdmin();
-    }
+    if (!adminUser) throw new UserNotFoundException();
 
-    const user = await this.userService.findById(userId);
-    if (!user) {
-      throw new UserNotFoundException();
-    }
+    if (socialGroup.admin.id !== adminUser.id) throw new SocialUserIsNotAdmin();
 
-    if (!socialGroup.members.find((member) => member.user.id === user.id)) {
-      throw new SocialUserNotFoundException();
-    }
+    const socialGroupJoinedUser = await this.findMemberById(
+      socialGroup.id,
+      userId,
+      {
+        userStatus:
+          SocialGroupMemberStatus.JOINED || SocialGroupMemberStatus.WAITING,
+      },
+    );
+    if (socialGroupJoinedUser.userRole === SocialGroupMemberRole.ADMIN)
+      throw new SocialCantKickAdmin();
+    if (!socialGroupJoinedUser) throw new SocialUserNotFoundException();
 
     const kickedUser = await this.socialGroupUserRepository.save({
-      id: user.id,
+      ...socialGroupJoinedUser,
       socialGroup,
       userStatus: SocialGroupMemberStatus.KICKED,
     });
@@ -268,52 +293,98 @@ export class SocialService {
 
   async updateSocial(
     socialId: string,
-    userData: User,
+    userData: UserProfileCommand,
     data: SocialUpdateRequestCommand,
   ): Promise<SocialGroup> {
     const socialGroup = await this.findById(socialId);
-    if (!socialGroup) {
-      throw new SocialNotFoundException();
-    }
+    if (!socialGroup) throw new SocialNotFoundException();
 
     const user = await this.userService.findById(userData.id);
-    if (!user) {
-      throw new UserNotFoundException();
-    }
+    if (!user) throw new UserNotFoundException();
 
-    if (socialGroup.admin.id !== user.id) {
-      throw new SocialUserIsNotAdmin();
-    }
+    if (socialGroup.admin.id !== user.id) throw new SocialUserIsNotAdmin();
 
-    const updatedSocialGroup = await this.socialRepository.save({
+    const updatedSocialGroup = await this.socialGroupRepository.save({
       id: socialGroup.id,
       ...data,
+    });
+    updatedSocialGroup.members = await this.findMembersById(socialId, {
+      userStatus: SocialGroupMemberStatus.JOINED,
     });
 
     return updatedSocialGroup;
   }
 
-  async deleteSocial(socialId: string, user: User) {
-    const socialGroup = await this.findById(socialId);
-    if (!socialGroup) {
-      throw new SocialNotFoundException();
-    }
-
-    if (socialGroup.admin.id !== user.id) {
-      throw new SocialUserIsNotAdmin();
-    }
-
-    const { affected } = await this.socialRepository.softDelete({
-      id: socialGroup.id,
+  async findById(id: string): Promise<SocialGroup> {
+    return await this.socialGroupRepository.findOne({
+      where: { id },
+      relations: ['admin'],
     });
-    return affected > 0;
   }
 
-  async findById(id: string): Promise<SocialGroup> {
-    const socialGroup = await this.socialRepository.findOne({
-      where: { id },
-      relations: ['socialGroupPlaces', 'socialGroupUsers'],
+  async findMembersById(
+    id: string,
+    whereOptions?: FindOptionsWhere<SocialGroupUser>,
+  ): Promise<SocialGroupUser[]> {
+    return await this.socialGroupUserRepository.find({
+      where: { socialGroup: { id }, ...whereOptions },
+      relations: ['user'],
     });
+  }
+
+  async findMemberById(
+    socialGroupId: string,
+    memberId: string,
+    whereOptions?: FindOptionsWhere<SocialGroupUser>,
+  ): Promise<SocialGroupUser> {
+    return await this.socialGroupUserRepository.findOne({
+      where: {
+        socialGroup: { id: socialGroupId },
+        user: { id: memberId },
+        ...whereOptions,
+      },
+      relations: ['user'],
+    });
+  }
+
+  async generateSocialGroup(
+    socialGroupCreateData: SocialCreateRequestCommand,
+    socialGroupAdmin: User,
+    socialGroupPlaceCreateData?: SocialPlaceCreateRequestCommand,
+  ): Promise<SocialGroup> {
+    const socialGroup = await this.socialGroupRepository.save({
+      ...socialGroupCreateData,
+      socialPlace: socialGroupPlaceCreateData,
+      admin: socialGroupAdmin,
+      members: [
+        {
+          user: socialGroupAdmin,
+          userStatus: SocialGroupMemberStatus.JOINED,
+          userRole: SocialGroupMemberRole.ADMIN,
+        },
+      ],
+    });
+
+    await this.socialGroupUserRepository.save({
+      user: socialGroupAdmin,
+      socialGroup,
+      userStatus: SocialGroupMemberStatus.JOINED,
+      userRole: SocialGroupMemberRole.ADMIN,
+    });
+
     return socialGroup;
+  }
+
+  async addMemberToSocialGroup(
+    socialGroup: SocialGroup,
+    user: User,
+    userStatus: SocialGroupMemberStatus,
+  ): Promise<SocialGroupUser> {
+    return await this.socialGroupUserRepository.save({
+      user,
+      socialGroup,
+      userStatus,
+      userRole: SocialGroupMemberRole.MEMBER,
+    });
   }
 }

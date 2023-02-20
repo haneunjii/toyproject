@@ -1,4 +1,4 @@
-import { IsUrl, Length } from 'class-validator';
+import { Length } from 'class-validator';
 import {
   Column,
   CreateDateColumn,
@@ -17,10 +17,6 @@ import { User } from '@domain/user/user.entity';
 export class UserProfile implements UserProfileProperties {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-
-  @Column()
-  @IsUrl()
-  profileImageUrl: string;
 
   @Column({ type: 'int', default: 0 })
   followerCount: number;

@@ -1,15 +1,10 @@
-import {
-  UserOauthTypeProperties,
-  UserProfileProperties,
-  UserProperties,
-} from '@domain/user/user';
+import { SocialGroupUser } from '@domain/social/social-group-user.entity';
+import { UserOauthTypeProperties, UserProperties } from '@domain/user/user';
 import { UserAddress } from '@domain/user/user-address.entity';
 
 export type UserCreateRequestCommand = {
-  user: Pick<UserProperties, 'username' | 'nickname'>;
-} & { authType: Pick<UserOauthTypeProperties, 'username' | 'snsType'> } & {
-  profile: Partial<Pick<UserProfileProperties, 'profileImageUrl'>>;
-};
+  user: Pick<UserProperties, 'username' | 'nickname' | 'profileImageUrl'>;
+} & { authType: Pick<UserOauthTypeProperties, 'username' | 'snsType'> };
 
 export type UserAddressUpdateRequestCommand = Pick<
   UserAddress,
@@ -23,6 +18,8 @@ export type UserAddressResponseCommand = Pick<
 
 export type UserProfileCommand = Pick<
   UserProperties,
-  'id' | 'username' | 'nickname'
-> &
-  Pick<UserProfileProperties, 'profileImageUrl'>;
+  'id' | 'username' | 'nickname' | 'profileImageUrl'
+>;
+
+export type SocialMemberProfileCommand = UserProfileCommand &
+  Pick<SocialGroupUser, 'userStatus' | 'userRole'>;

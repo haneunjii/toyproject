@@ -1,3 +1,4 @@
+import { IsUrl } from 'class-validator';
 import {
   Column,
   CreateDateColumn,
@@ -31,6 +32,10 @@ export class User implements UserProperties {
 
   @Column({ unique: true })
   nickname: string;
+
+  @Column()
+  @IsUrl()
+  profileImageUrl: string;
 
   @OneToOne(() => UserSns, (userSns) => userSns)
   @JoinColumn()

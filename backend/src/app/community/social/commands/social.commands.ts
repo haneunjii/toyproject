@@ -1,19 +1,22 @@
 import { SocialCreateRequest } from '@app/community/social/dto/social-create.request';
-import { UserProfileCommand } from '@app/user/user.commands';
+import { SocialMemberProfileCommand } from '@app/user/user.commands';
 import {
   SocialGroupPlaceProperties,
   SocialGroupProperties,
+  SocialGroupType,
 } from '@domain/social/social-group';
 
 export type SocialListQuery = {
   page: number;
   limit: number;
+  category?: SocialGroupType;
 };
 
 export type SocialPreviewResponseCommand = Pick<
   SocialGroupProperties,
   | 'id'
   | 'title'
+  | 'admin'
   | 'endAt'
   | 'thumbnailUrl'
   | 'type'
@@ -21,7 +24,7 @@ export type SocialPreviewResponseCommand = Pick<
   | 'memberCount'
   | 'socialAt'
 > &
-  Pick<SocialGroupPlaceProperties, 'region3DepthName'>;
+  Partial<Pick<SocialGroupPlaceProperties, 'region3DepthName'>>;
 
 export type SocialProfileResponseCommand = Pick<
   SocialGroupProperties,
@@ -38,7 +41,7 @@ export type SocialProfileResponseCommand = Pick<
   | 'socialPlace'
   | 'admin'
   | 'recruitmentConditions'
-> & { members: UserProfileCommand[] };
+> & { members: SocialMemberProfileCommand[] };
 
 export type SocialCreateRequestCommand = Pick<
   SocialCreateRequest,

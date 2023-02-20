@@ -10,6 +10,7 @@ import {
 
 import { SocialPreviewResponseCommand } from '@app/community/social/commands/social.commands';
 import { SocialGroupType } from '@domain/social/social-group';
+import { UserProperties } from '@domain/user/user';
 
 export class SocialPreviewResponse implements SocialPreviewResponseCommand {
   @ApiProperty({ description: '소셜그룹 아이디' })
@@ -19,6 +20,9 @@ export class SocialPreviewResponse implements SocialPreviewResponseCommand {
   @ApiProperty({ description: '소셜그룹 제목' })
   @IsString()
   title: string;
+
+  @ApiProperty({ description: '소셜그룹 관리자' })
+  admin: UserProperties;
 
   @ApiProperty({ description: '모집 마감일' })
   @IsDate()

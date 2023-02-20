@@ -51,6 +51,7 @@ export class SocialGroup implements SocialGroupProperties {
   @OneToOne(
     () => SocialGroupRecruitmentConditions,
     (socialRecruitmentConditions) => socialRecruitmentConditions,
+    { cascade: true },
   )
   @JoinColumn()
   recruitmentConditions: SocialGroupRecruitmentConditions;
@@ -71,12 +72,13 @@ export class SocialGroup implements SocialGroupProperties {
   @OneToMany(() => User, (user) => user)
   likes: User[];
 
-  @OneToOne(() => SocialGroupPlace, (socialGroupPlace) => socialGroupPlace, {
-    cascade: ['insert', 'soft-remove'],
-    nullable: true,
-  })
+  @OneToOne(
+    () => SocialGroupPlace,
+    (socialGroupPlace) => socialGroupPlace.socialGroup,
+    { cascade: true },
+  )
   @JoinColumn()
-  socialPlace?: SocialGroupPlace | null;
+  socialPlace: SocialGroupPlace;
 
   @OneToMany(() => User, (user) => user)
   reportLogs: SocialGroupReportLogs[];

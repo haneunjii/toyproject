@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Param,
-  ParseUUIDPipe,
-  Patch,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Patch, Req, UseGuards } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -17,6 +10,7 @@ import {
 } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '@app/auth/guards/jwt.guard';
+import { Request } from '@app/infrastructure/types/request.types';
 import { UserAddressRequest } from '@app/user/dto/user-address.request';
 import { UserAddressResponse } from '@app/user/dto/user-address.response';
 import { UserService } from '@app/user/user.service';
@@ -43,11 +37,11 @@ export class UserController {
   @ApiBadRequestResponse({ description: AUTH_ERRORS.KAKAO_API_FAILED })
   @ApiBearerAuth()
   async updateUserAddress(
-    @Param('userId', ParseUUIDPipe) userId: string,
     @Body() address: UserAddressRequest,
+    @Req() { user }: Request,
   ): Promise<UserAddressResponse> {
     const userAddress = await this.userService.updateUserAddress(
-      userId,
+      user.id,
       address,
     );
     return new UserAddressResponse(userAddress);
